@@ -3,6 +3,7 @@ target
 !.gitignore
 !.travis.yml
 !.env.example
+!.github
 *.iml
 /data
 /releases
