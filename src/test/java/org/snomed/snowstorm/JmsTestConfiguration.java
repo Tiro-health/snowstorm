@@ -2,7 +2,6 @@ package org.snomed.snowstorm;
 
 import jakarta.jms.ConnectionFactory;
 import org.apache.activemq.ActiveMQConnectionFactory;
-import org.apache.activemq.broker.BrokerService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jms.annotation.EnableJms;
@@ -15,21 +14,11 @@ import org.springframework.jms.core.JmsTemplate;
 public class JmsTestConfiguration {
 
     @Bean
-    public BrokerService brokerService() throws Exception {
-        BrokerService broker = new BrokerService();
-        broker.setPersistent(false);
-        broker.setUseJmx(false);
-        broker.setBrokerName("test-broker");
-        broker.addConnector("vm://test-broker?create=false");
-        broker.setUseShutdownHook(false);
-        broker.start();
-        broker.waitUntilStarted();
-        return broker;
-    }
-
-    @Bean
-    public ConnectionFactory connectionFactory(BrokerService brokerService) {
-        ActiveMQConnectionFactory factory = new ActiveMQConnectionFactory("vm://test-broker?create=false");
+    public ConnectionFactory connectionFactory() {
+        // Use vm:// with broker auto-creation
+        // broker.persistent=false ensures in-memory broker
+        // broker.useJmx=false disables JMX to avoid conflicts
+        ActiveMQConnectionFactory factory = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false&broker.useJmx=false");
         factory.setTrustAllPackages(true);
         // Create a caching connection factory to improve performance
         CachingConnectionFactory cachingFactory = new CachingConnectionFactory(factory);
