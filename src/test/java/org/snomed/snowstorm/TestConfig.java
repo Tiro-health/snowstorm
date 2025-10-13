@@ -11,7 +11,6 @@ import org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDa
 import org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.data.elasticsearch.client.ClientConfiguration;
 import org.testcontainers.DockerClientFactory;
@@ -27,7 +26,6 @@ import java.util.Properties;
 @PropertySource(value = "classpath:application.properties", encoding = "UTF-8")
 @PropertySource(value = "classpath:application-test.properties", encoding = "UTF-8")
 @TestConfiguration
-@Import(JmsTestConfiguration.class)
 @SpringBootApplication(
 		exclude = {
 				ElasticsearchRestClientAutoConfiguration.class,
