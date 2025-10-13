@@ -29,7 +29,7 @@ jobs:
         docker ps
         
     - name: Build with Maven
-      run: mvn clean package -B -P jenkins-exclude-test
+      run: mvn clean package -B
       env:
         TESTCONTAINERS_RYUK_DISABLED: false
         TESTCONTAINERS_CHECKS_DISABLE: false
