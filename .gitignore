@@ -2,6 +2,7 @@ target
 .*
 !.gitignore
 !.travis.yml
+!.env.example
 *.iml
 /data
 /releases
@@ -13,3 +14,8 @@ snomed-drools-rules
 /tmp
 /local*
 authoring-traceability.log*
+/application.properties
+test.properties
+/artifacts/*
+!/artifacts/README.md
+!/artifacts/*/.gitkeep
