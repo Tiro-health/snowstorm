@@ -1,4 +1,3 @@
-version: '2.1'
 services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
@@ -21,39 +20,95 @@ services:
       timeout: 1s
       retries: 60
     ports:
-      - 127.0.0.1:9200:9200
+      - "9200:9200"
     mem_reservation: 4g
 
 
   snowstorm:
-    image: snomedinternational/snowstorm:latest
+    build: .
+    env_file: ./.env
     container_name: snowstorm
-    restart: always
+    #restart: always
     depends_on:
       elasticsearch:
         condition: service_healthy
-    entrypoint: java -Xms2g -Xmx4g --add-opens java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED -cp @/app/jib-classpath-file org.snomed.snowstorm.SnowstormApplication --elasticsearch.urls=http://es:9200
+    # volumes: # examples for externalizing the terminology download location below
+      #- /home/username/Downloads:/app/hl7/terminologyFiles
+      #- /mnt/ssd/loinc:/app/loinc/terminologyFiles
+      #- /mnt/ssd/snomed:/app/snomed/terminologyFiles
+    entrypoint: [
+      "java",
+      #"-Xdebug", # debugging purposes
+      #"-agentlib:jdwp=transport=dt_socket,server=y,address=*:5005,suspend=n", # debugging purposes
+      "-Xms2g",
+      "-Xmx4g",
+      "--add-opens", "java.base/java.lang=ALL-UNNAMED",
+      "--add-opens", "java.base/java.util=ALL-UNNAMED",
+      "-jar", "/app/snowstorm.jar"
+    ]
+    command: [
+      "--elasticsearch.urls=http://es:9200",
+      "--syndication", # uncomment to import below terminologies + the default ones (ISO3166 etc)
+      #"--atc=https://raw.githubusercontent.com/ehealthplatformstandards/atc-terminology-publisher/main/atc-codesystem.csv", # ensure the copyright is respected for your use-case before enabling (https://atcddd.fhi.no/copyright_disclaimer/)
+      #"--icd10-be",
+      #"--icd10-be=2023", # see available years on https://www.health.belgium.be/fr/sante/organisation-des-soins-de-sante/hopitaux/systemes-denregistrement/icd-10-be/publications#reflist
+      #"--icd10-be=local", # filename format *.xlsx
+      #"--icpc2",
+      #"--icpc2=local",
+      #"--icd10",
+      #"--icd10=2019", # see available years on https://icdcdn.who.int/icd10/index.html
+      #"--icd10=local", # filename format *.zip
+      #"--hl7",
+      #"--hl7=local", # filename format hl7.terminology.*.tgz
+      #"--hl7=6.1.0",
+      #"--snomed=local",
+      #"--snomed=http://snomed.info/sct/11000172109", # latest belgian extension (+ international edition dependency)
+      #"--snomed=http://snomed.info/sct/11000172109/version/20250315", # specific version
+      "--extension-country-code=BE", # mandatory when loading snomed extensions
+      #"--loinc",
+      #"--loinc=local",
+      #"--loinc=2.78",
+    ]
     networks:
       elastic:
         aliases:
          - snowstorm
     ports:
-      - 8080:8080
+      - "8080:8080"
+      #- "5005:5005" # debugging purposes
 
-  browser:
-    image: snomedinternational/snomedct-browser:latest
-    container_name: browser
-    depends_on:
-      - snowstorm
-    links:
-      - snowstorm:snowstorm
-    networks:
-      - elastic
-    environment:
-      - API_HOST=http://snowstorm:8080/
-    ports:
-      - 80:80
-    restart: always
+#  browser:
+#    image: snomedinternational/snomedct-browser:latest
+#    container_name: browser
+#    depends_on:
+#      - snowstorm
+#    links:
+#      - snowstorm:snowstorm
+#    networks:
+#      - elastic
+#    environment:
+#      - API_HOST=http://snowstorm:8080/
+#    ports:
+#      - "80:80"
+    #restart: always
+
+#  kibana:
+#    image: docker.elastic.co/kibana/kibana:8.11.1
+#    container_name: kibana
+#    depends_on:
+#      elasticsearch:
+#        condition: service_healthy
+#    environment:
+#      - ELASTICSEARCH_HOSTS=http://es:9200
+#      - SERVER_NAME=kibana
+#      - SERVER_HOST=0.0.0.0
+#      - XPACK_SECURITY_ENABLED=false
+#    ports:
+#      - "5601:5601"
+#    networks:
+#      elastic:
+#        aliases:
+#          - kibana
 
 
 networks:

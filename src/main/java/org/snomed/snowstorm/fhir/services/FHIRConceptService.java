@@ -3,7 +3,10 @@ package org.snomed.snowstorm.fhir.services;
 import ca.uhn.fhir.jpa.entity.TermCodeSystemVersion;
 import ca.uhn.fhir.jpa.entity.TermConcept;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.TermQuery;
 import com.google.common.collect.Iterables;
+
+import org.hl7.fhir.r4.model.BooleanType;
 import org.hl7.fhir.r4.model.CodeSystem;
 import org.hl7.fhir.r4.model.CodeType;
 import org.slf4j.Logger;
@@ -96,7 +99,7 @@ public class FHIRConceptService {
 		}
 
 		FHIRGraphBuilder graphBuilder = new FHIRGraphBuilder();
-		if ("is-a".equals(codeSystemVersion.getHierarchyMeaning())) {
+		if (Objects.isNull(codeSystemVersion.getHierarchyMeaning()) || "is-a".equals(codeSystemVersion.getHierarchyMeaning())) {
 			// Record transitive closure of concepts for subsumption testing
 			for (FHIRConcept concept : concepts) {
 				for (String parentCode : concept.getParents()) {
@@ -123,6 +126,13 @@ public class FHIRConceptService {
 		}
 
 		Set<String> props = new HashSet<>();
+		//treat extensions as properties, until better solution...
+		concepts.forEach(concept ->{
+			concept.getExtensions().forEach((key,value)->{
+				concept.getProperties().put(key,value);
+			});
+		});
+
 		concepts.stream()
 				.filter(concept -> concept.getProperties() != null)
 				.forEach(concept -> props.addAll(concept.getProperties().keySet()));
@@ -152,6 +162,10 @@ public class FHIRConceptService {
 				percentToLog = null;
 			}
 		}
+	}
+
+	public Page<FHIRConcept> findConcepts(String idWithVersion, PageRequest pageRequest){
+		return conceptRepository.findByCodeSystemVersion(idWithVersion, pageRequest);
 	}
 
 	public void deleteExistingCodes(String idWithVersion) {
@@ -187,7 +201,11 @@ public class FHIRConceptService {
 				.build();
 		searchQuery.setTrackTotalHits(true);
 		updateQueryWithSearchAfter(searchQuery, pageRequest);
+
+		logger.debug("QUERY:"+searchQuery.getQuery().toString());
+
 		return toPage(elasticsearchOperations.search(searchQuery, FHIRConcept.class), pageRequest);
+
 	}
 
 	public SearchAfterPage<String> findConceptCodes(BoolQuery fhirConceptQuery, PageRequest pageRequest) {
@@ -205,5 +223,13 @@ public class FHIRConceptService {
 
 	public Page<FHIRConcept> findConcepts(Set<String> codes, FHIRCodeSystemVersion codeSystemVersion, Pageable pageable) {
 		return conceptRepository.findByCodeSystemVersionAndCodeIn(codeSystemVersion.getId(), codes, pageable);
+	}
+
+	public Page<FHIRConcept> findConceptsWithoutSystem(String code, PageRequest pageRequest) {
+		BoolQuery.Builder bool = new BoolQuery.Builder();
+		bool.must(new TermQuery.Builder().value(code).field("code").build()._toQuery());
+
+		return findConcepts(bool,pageRequest );
+
 	}
 }

@@ -8,8 +8,9 @@ target
 /application-*.properties*
 *.log
 /resources
-*.sh
 snomed-drools-rules
 /tmp
 /local*
 authoring-traceability.log*
+/application.properties
+test.properties

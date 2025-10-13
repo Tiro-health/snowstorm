@@ -8,6 +8,7 @@ import ca.uhn.fhir.rest.server.RestfulServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.snowstorm.fhir.services.*;
+import org.springframework.boot.info.BuildProperties;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
@@ -15,43 +16,50 @@ import jakarta.servlet.ServletException;
 
 public class HapiRestfulServlet extends RestfulServer {
 
-	private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
+    private final BuildProperties buildProperties;
+    private final FHIRCodeSystemService codeSystemService;
 
-	private final Logger logger = LoggerFactory.getLogger(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
-	/**
-	 * The initialize method is automatically called when the servlet is starting up, so it can be used to configure the
-	 * servlet to define resource providers, or set up configuration, interceptors, etc.
-	 */
-	@Override
-	protected void initialize() throws ServletException {
-		final WebApplicationContext applicationContext =
-				WebApplicationContextUtils.getWebApplicationContext(this.getServletContext());
+    public HapiRestfulServlet(BuildProperties buildProperties, FHIRCodeSystemService codeSystemService) {
+        this.buildProperties = buildProperties;
+        this.codeSystemService = codeSystemService;
+    }
 
-		setDefaultResponseEncoding(EncodingEnum.JSON);
+    /**
+     * The initialize method is automatically called when the servlet is starting up, so it can be used to configure the
+     * servlet to define resource providers, or set up configuration, interceptors, etc.
+     */
+    @Override
+    protected void initialize() throws ServletException {
+        final WebApplicationContext applicationContext =
+                WebApplicationContextUtils.getWebApplicationContext(this.getServletContext());
 
-		final FhirContext fhirContext = applicationContext.getBean(FhirContext.class);
-		final LenientErrorHandler delegateHandler = new LenientErrorHandler();
-		fhirContext.setParserErrorHandler(new StrictErrorHandler() {
-			@Override
-			public void unknownAttribute(IParseLocation theLocation, String theAttributeName) {
-				delegateHandler.unknownAttribute(theLocation, theAttributeName);
-			}
+        setDefaultResponseEncoding(EncodingEnum.JSON);
 
-			@Override
-			public void unknownElement(IParseLocation theLocation, String theElementName) {
-				delegateHandler.unknownElement(theLocation, theElementName);
-			}
+        final FhirContext fhirContext = applicationContext.getBean(FhirContext.class);
+        final LenientErrorHandler delegateHandler = new LenientErrorHandler();
+        fhirContext.setParserErrorHandler(new StrictErrorHandler() {
+            @Override
+            public void unknownAttribute(IParseLocation theLocation, String theAttributeName) {
+                delegateHandler.unknownAttribute(theLocation, theAttributeName);
+            }
 
-			@Override
-			public void unknownReference(IParseLocation theLocation, String theReference) {
-				delegateHandler.unknownReference(theLocation, theReference);
-			}
-		});
-		setFhirContext(fhirContext);
+            @Override
+            public void unknownElement(IParseLocation theLocation, String theElementName) {
+                delegateHandler.unknownElement(theLocation, theElementName);
+            }
 
-		FHIRHelper fhirHelper = applicationContext.getBean(FHIRHelper.class);
-		fhirHelper.setFhirContext(fhirContext);
+            @Override
+            public void unknownReference(IParseLocation theLocation, String theReference) {
+                delegateHandler.unknownReference(theLocation, theReference);
+            }
+        });
+        setFhirContext(fhirContext);
+
+        FHIRHelper fhirHelper = applicationContext.getBean(FHIRHelper.class);
+        fhirHelper.setFhirContext(fhirContext);
 
 		/*
 		 * The servlet defines any number of resource providers, and configures itself to use them by calling
@@ -62,13 +70,16 @@ public class HapiRestfulServlet extends RestfulServer {
 				applicationContext.getBean(FHIRValueSetProvider.class),
 				applicationContext.getBean(FHIRConceptMapProvider.class),
 				applicationContext.getBean(FHIRMedicationProvider.class),
+				applicationContext.getBean(FHIRBundleProvider.class),
 				applicationContext.getBean(FHIRStructureDefinitionProvider.class));
 
-		setServerConformanceProvider(new FHIRTerminologyCapabilitiesProvider(this));
+		registerProvider(applicationContext.getBean(FHIRVersionsOperationProvider.class));
 
-		// Register interceptors
-		registerInterceptor(new RootInterceptor());
+        setServerConformanceProvider(new FHIRTerminologyCapabilitiesProvider(this, buildProperties, codeSystemService));
 
-		logger.info("FHIR Resource providers and interceptors registered");
-	}
+        // Register interceptors
+        registerInterceptor(new RootInterceptor());
+
+        logger.info("FHIR Resource providers and interceptors registered");
+    }
 }

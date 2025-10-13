@@ -2,21 +2,25 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<name>Snowstorm</name>
+	<name>SnowstormX</name>
 	<description>SNOMED CT Terminology Server Using Elasticsearch</description>
 
-	<artifactId>snowstorm</artifactId>
-	<version>10.7.0</version>
+	<artifactId>snowstorm-x</artifactId>
+	<version>11.6.0-SNAPSHOT</version>
 	<parent>
 		<groupId>org.snomed</groupId>
 		<artifactId>snomed-parent-bom</artifactId>
-		<version>3.9.0</version>
+		<version>3.8.0</version>
 	</parent>
 
 	<properties>
 		<packageName>${project.artifactId}</packageName>
-		<!-- BOM Override -->
-		<jena_version>4.9.0</jena_version>
+
+		<!-- BOM Overrides: Delete and reevaluate during each upgrade -->
+		<spring-boot.version>3.2.11</spring-boot.version>
+		<spring.version>6.1.14</spring.version>
+		<spring.security.version>6.2.7</spring.security.version>
+
 		<!--
 		Current Elasticsearch _Server_ version is 8.11.1
 		N.B. Remember to keep TestConfig.ELASTIC_SEARCH_SERVER_VERSION and getting-started guide updated.
@@ -55,8 +59,28 @@
 			<groupId>org.springframework.data</groupId>
 			<artifactId>spring-data-elasticsearch</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>org.jsoup</groupId>
+			<artifactId>jsoup</artifactId>
+			<version>1.17.1</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi</artifactId>
+			<version>5.2.2</version>
+		</dependency>
 
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-ooxml</artifactId>
+			<version>5.2.2</version>
+		</dependency>
 
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-ooxml-full</artifactId>
+			<version>5.2.2</version>
+		</dependency>
 		<dependency>
 			<!-- For RF2 Import -->
 			<groupId>org.snomed.otf</groupId>
@@ -69,8 +93,9 @@
 			</exclusions>
 		</dependency>
 		<dependency>
-			<groupId>org.snomed.otf</groupId>
-			<artifactId>snomed-owl-toolkit</artifactId>
+			<groupId>org.snomed</groupId>
+			<artifactId>snomed-owl-toolkit-incremental</artifactId>
+			<version>5.4.1</version>
 		</dependency>
 		<dependency>
 			<groupId>org.snomed.languages</groupId>
@@ -318,6 +343,11 @@
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-starter-vault-config</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>org.fhir</groupId>
+			<artifactId>ucum</artifactId>
+			<version>1.0.10</version>
+		</dependency>
 	</dependencies>
 	<dependencyManagement>
 		<dependencies>
@@ -445,7 +475,6 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
-				<version>${spring-boot.version}</version>
 				<configuration>
 					<mainClass>org.snomed.snowstorm.SnowstormApplication</mainClass>
 				</configuration>

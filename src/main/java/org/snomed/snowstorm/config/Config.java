@@ -36,6 +36,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.context.annotation.PropertySources;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.IndexOperations;
@@ -70,7 +71,9 @@ import static java.lang.Long.parseLong;
 				"org.snomed.snowstorm.fhir.repositories"
 		})
 @EnableConfigurationProperties
-@PropertySource(value = "classpath:application.properties", encoding = "UTF-8")
+@PropertySources({
+		@PropertySource(value = "classpath:application.properties", encoding = "UTF-8")
+})
 @EnableAsync
 public abstract class Config extends ElasticsearchConfig {
 
@@ -96,6 +99,9 @@ public abstract class Config extends ElasticsearchConfig {
 
 	@Value("${elasticsearch.index.max.terms.count}")
 	private int indexMaxTermsCount;
+
+	@Value("${elasticsearch.index.max.fields.limit}")
+	private int indexMaxFieldsLimit;
 
 	@Value("${search.term.minimumLength}")
 	private int searchTermMinimumLength;
@@ -226,8 +232,8 @@ public abstract class Config extends ElasticsearchConfig {
 
 	@Bean
 	@ConfigurationProperties(prefix = "codesystem")
-	public CodeSystemConfigurationService getCodeSystemConfigurationService() {
-		return new CodeSystemConfigurationService();
+	public CodeSystemDefaultConfigurationService getCodeSystemConfigurationService() {
+		return new CodeSystemDefaultConfigurationService();
 	}
 	
 	@Bean
@@ -301,5 +307,14 @@ public abstract class Config extends ElasticsearchConfig {
 		}
 	}
 
-
+	protected void updateIndexMappingFieldsLimitSetting() {
+		try {
+			Request updateSettingsRequest = new Request("PUT", "/fhir-concept/_settings");
+			updateSettingsRequest.setJsonEntity("{\"" + INDEX_MAX_FIELDS_LIMIT + "\": " + indexMaxFieldsLimit + "}");
+			elasticsearchRestClient(clientConfiguration()).performRequest(updateSettingsRequest);
+			logger.info("{} is updated to {}", INDEX_MAX_FIELDS_LIMIT, indexMaxFieldsLimit);
+		} catch (IOException e) {
+			logger.error("Failed to update setting {}", INDEX_MAX_TERMS_COUNT, e);
+		}
+	}
 }

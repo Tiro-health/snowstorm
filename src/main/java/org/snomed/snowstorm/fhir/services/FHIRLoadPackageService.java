@@ -6,32 +6,39 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
+import org.apache.commons.lang3.StringUtils;
 import org.hl7.fhir.instance.model.api.IBaseResource;
 import org.hl7.fhir.r4.model.CodeSystem;
 import org.hl7.fhir.r4.model.OperationOutcome;
 import org.hl7.fhir.r4.model.ValueSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.snomed.snowstorm.core.data.services.ServiceException;
 import org.snomed.snowstorm.fhir.domain.FHIRCodeSystemVersion;
 import org.snomed.snowstorm.fhir.domain.FHIRPackageIndex;
 import org.snomed.snowstorm.fhir.domain.FHIRPackageIndexFile;
+import org.snomed.snowstorm.fhir.domain.FHIRValueSet;
 import org.snomed.snowstorm.fhir.pojo.FHIRCodeSystemVersionParams;
 import org.snomed.snowstorm.fhir.pojo.ValueSetExpansionParameters;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.lang.String.format;
+import static org.snomed.snowstorm.fhir.services.FHIRHelper.DEFAULT_VERSION;
 
 @Service
 public class FHIRLoadPackageService {
+
+	@Value("${snowstorm.rest-api.readonly}")
+	private boolean readOnlyMode;
 
 	@Autowired
 	private ObjectMapper mapper;
@@ -51,14 +58,15 @@ public class FHIRLoadPackageService {
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public void uploadPackageResources(File packageFile, Set<String> resourceUrlsToImport, String submittedFileName, boolean testValueSets) throws IOException {
+		FHIRHelper.readOnlyCheck(readOnlyMode);
 		JsonParser jsonParser = (JsonParser) fhirContext.newJsonParser();
-		FHIRPackageIndex index = extractObject(packageFile, ".index.json", FHIRPackageIndex.class, jsonParser);
+		FHIRPackageIndex index = extractObject(new FileInputStream(packageFile), ".index.json", FHIRPackageIndex.class, jsonParser);
 		Set<String> supportedResourceTypes = Set.of("CodeSystem", "ValueSet");
 		boolean importAll = resourceUrlsToImport.contains("*");
 		List<FHIRPackageIndexFile> filesToImport = index.getFiles().stream()
 				.filter(file -> (importAll && supportedResourceTypes.contains(file.getResourceType())) ||
 						(!importAll && resourceUrlsToImport.contains(file.getUrl())))
-				.collect(Collectors.toList());
+				.toList();
 		validateResources(filesToImport, resourceUrlsToImport, importAll, supportedResourceTypes);
 		logger.info("Importing {} resources, found within index of package {}.{}", filesToImport.size(), submittedFileName,
 				testValueSets ? " Each value set will be expanded and any issues logged as warning." : "");
@@ -69,7 +77,7 @@ public class FHIRLoadPackageService {
 			String id = indexFileToImport.getId();
 			String url = indexFileToImport.getUrl();
 			if (id != null && url != null) {
-				CodeSystem codeSystem = extractObject(packageFile, filename, CodeSystem.class, jsonParser);
+				CodeSystem codeSystem = extractObject(new FileInputStream(packageFile), filename, CodeSystem.class, jsonParser);
 				codeSystem.setId(id);
 				codeSystem.setUrl(url);
 				if (FHIRHelper.isSnomedUri(codeSystem.getUrl())) {
@@ -80,16 +88,23 @@ public class FHIRLoadPackageService {
 				FHIRCodeSystemVersion existingCodeSystemVersion = codeSystemService.findCodeSystemVersion(new FHIRCodeSystemVersionParams(url).setVersion(version));
 				if (existingCodeSystemVersion != null) {
 					if (codeSystem.getContent() == CodeSystem.CodeSystemContentMode.NOTPRESENT) {
-						logger.info("Skipping import of CodeSystem %s with 'content:not-present' because a CodeSystem with the same url and version already exists.");
+						logger.info("Skipping import of CodeSystem {} with 'content:not-present' because a CodeSystem with the same url and version already exists.", existingCodeSystemVersion.getUrl());
+						continue;
 					} else {
 						logger.info("Deleting existing CodeSystem and concepts for url:{}, version:{}", existingCodeSystemVersion.getUrl(), existingCodeSystemVersion.getVersion());
-						codeSystemService.deleteCodeSystemVersion(existingCodeSystemVersion.getId());
+						codeSystemService.deleteCodeSystemVersion(existingCodeSystemVersion);
 					}
 				}
-				List<CodeSystem.ConceptDefinitionComponent> concepts = codeSystem.getConcept();
+				logger.info("Creating CodeSystem {}", codeSystem.getUrl());
+				FHIRCodeSystemVersion codeSystemVersion;
+				try {
+					codeSystemVersion = codeSystemService.createUpdate(codeSystem);
+				} catch (ServiceException e) {
+					throw new IOException("Failed to create FHIR CodeSystem.", e);
+				}
+				List<CodeSystem.ConceptDefinitionComponent> concepts = getConcepts(codeSystem, codeSystemVersion);
 				logger.info("Importing CodeSystem {} with {} concepts from package", codeSystem.getUrl(), concepts != null ? concepts.size() : 0);
-				FHIRCodeSystemVersion codeSystemVersion = codeSystemService.save(codeSystem);
-				if (concepts != null) {
+				if (concepts != null ) {
 					fhirConceptService.saveAllConceptsOfCodeSystemVersion(concepts, codeSystemVersion);
 				}
 			}
@@ -101,15 +116,15 @@ public class FHIRLoadPackageService {
 			String id = indexFileToImport.getId();
 			String url = indexFileToImport.getUrl();
 			if (id != null && url != null) {
-				ValueSet valueSet = extractObject(packageFile, filename, ValueSet.class, jsonParser);
+				ValueSet valueSet = extractObject(new FileInputStream(packageFile), filename, ValueSet.class, jsonParser);
 				valueSet.setId(id);
 				valueSet.setUrl(url);
 				valueSet.setVersion(indexFileToImport.getVersion());
-				logger.info("Importing ValueSet {} from package", valueSet.getUrl());
+				logger.info("Importing ValueSet {} {} from package", valueSet.getUrl(), valueSet.getVersion());
 				valueSetService.createOrUpdateValuesetWithoutExpandValidation(valueSet);
 				if (testValueSets) {
 					try {
-						valueSetService.expand(new ValueSetExpansionParameters(valueSet, true), null);
+						valueSetService.expand(new ValueSetExpansionParameters(valueSet, true, true), null);
 					} catch (SnowstormFHIRServerResponseException e) {
 						logger.warn("Failed to expand ValueSet {}, {}", valueSet.getUrl(), e.getMessage());
 					}
@@ -120,6 +135,22 @@ public class FHIRLoadPackageService {
 		logger.info("Completed import of package {}.", submittedFileName);
 	}
 
+	private List<CodeSystem.ConceptDefinitionComponent> getConcepts(CodeSystem codeSystem, FHIRCodeSystemVersion version) {
+		List<CodeSystem.ConceptDefinitionComponent> concepts;
+		if (StringUtils.isEmpty(codeSystem.getSupplements())){
+			concepts = codeSystem.getConcept();
+		} else {
+			CodeSystem newCodeSystem = codeSystemService.addSupplementToCodeSystem(codeSystem, version);
+			concepts = newCodeSystem.getConcept();
+		}
+
+
+
+
+
+		return concepts;
+	}
+
 	private static void validateResources(List<FHIRPackageIndexFile> filesToImport, Set<String> resourceUrlsToImport, boolean importAll, Set<String> supportedResourceTypes) {
 		for (FHIRPackageIndexFile fhirPackageIndexFile : filesToImport) {
 			if (importAll && !supportedResourceTypes.contains(fhirPackageIndexFile.getResourceType())) {
@@ -127,7 +158,7 @@ public class FHIRLoadPackageService {
 						OperationOutcome.IssueType.NOTSUPPORTED, 400);
 			}
 			if (fhirPackageIndexFile.getVersion() == null) {
-				fhirPackageIndexFile.version = "1";
+				fhirPackageIndexFile.version = DEFAULT_VERSION;
 			}
 		}
 		if (!importAll) {
@@ -139,8 +170,8 @@ public class FHIRLoadPackageService {
 		}
 	}
 
-	private <T> T extractObject(File packageFile, String archiveEntryName, Class<T> clazz, JsonParser jsonParser) throws IOException {
-		try (GzipCompressorInputStream gzipIn = new GzipCompressorInputStream(new FileInputStream(packageFile));
+	private <T> T extractObject(InputStream packageStream, String archiveEntryName, Class<T> clazz, JsonParser jsonParser) throws IOException {
+		try (GzipCompressorInputStream gzipIn = new GzipCompressorInputStream(packageStream);
 			 TarArchiveInputStream tarIn = new TarArchiveInputStream(gzipIn)) {
 
 			ArchiveEntry entry;
@@ -159,4 +190,16 @@ public class FHIRLoadPackageService {
 		throw FHIRHelper.exception(format("File '%s' not found within package.", archiveEntryName), OperationOutcome.IssueType.NOTFOUND, 401);
 	}
 
+	public boolean isReadOnlyMode() {
+		return readOnlyMode;
+	}
+
+	public boolean verifyResourceExists(String resourceUrl) {
+		FHIRCodeSystemVersion codeSystemVersion = codeSystemService.findCodeSystemVersion(new FHIRCodeSystemVersionParams(resourceUrl));
+		if (codeSystemVersion != null) {
+			return true;
+		}
+		Optional<FHIRValueSet> valueSet = valueSetService.findLatestByUrl(resourceUrl);
+		return valueSet.isPresent();
+	}
 }
