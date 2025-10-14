@@ -55,19 +55,11 @@ class TraceabilityLogServiceTest extends AbstractTest {
 	@Autowired
 	private RelationshipService relationshipService;
 
-	private boolean traceabilityOriginallyEnabled;
-
 	@BeforeEach
 	void setup() {
-		traceabilityOriginallyEnabled = traceabilityLogService.isEnabled();
-		// Temporarily enable traceability if not already enabled in the test context
-		traceabilityLogService.setEnabled(true);
-	}
-
-	@AfterEach
-	void tearDown() {
-		// Restore test context traceability switch
-		traceabilityLogService.setEnabled(traceabilityOriginallyEnabled);
+		// Traceability should be enabled by application-jms-test.properties
+		assertTrue(traceabilityLogService.isEnabled(),
+				"Traceability should be enabled in test context via application-jms-test.properties");
 	}
 
 	@Test

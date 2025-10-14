@@ -19,6 +19,7 @@ import org.snomed.snowstorm.core.data.services.classification.ClassificationServ
 import org.snomed.snowstorm.core.data.services.servicehook.CommitServiceHookClient;
 import org.snomed.snowstorm.core.data.services.traceability.Activity;
 import org.snomed.snowstorm.rest.View;
+import org.snomed.snowstorm.util.JmsTestHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -77,13 +78,19 @@ public abstract class AbstractTest {
 	@Autowired
 	private ElasticsearchOperations elasticsearchOperations;
 
+	@Autowired
+	private JmsTestHelper jmsTestHelper;
+
 	@Value("${ims-security.roles.enabled}")
 	private boolean rolesEnabled;
 
 	private static final Stack<Activity> traceabilityActivitiesLogged = new Stack<>();
 
 	@BeforeEach
-	void before() throws InterruptedException {
+	void before() throws Exception {
+		// Ensure JMS broker is ready before tests execute
+		jmsTestHelper.waitForBrokerReady();
+
 		// Setup security
 		if (!rolesEnabled) {
 			PreAuthenticatedAuthenticationToken authentication = new PreAuthenticatedAuthenticationToken("test-admin", "1234", Sets.newHashSet(new SimpleGrantedAuthority("USER")));
@@ -94,6 +101,9 @@ public abstract class AbstractTest {
 		deleteAll();
 		branchService.create(MAIN);
 		clearActivities();
+
+		// Give JMS listeners time to fully register
+		Thread.sleep(100);
 	}
 
 	@AfterEach

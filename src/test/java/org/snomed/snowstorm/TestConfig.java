@@ -25,6 +25,7 @@ import java.util.Properties;
 
 @PropertySource(value = "classpath:application.properties", encoding = "UTF-8")
 @PropertySource(value = "classpath:application-test.properties", encoding = "UTF-8")
+@PropertySource(value = "classpath:application-jms-test.properties", encoding = "UTF-8")
 @TestConfiguration
 @SpringBootApplication(
 		exclude = {
@@ -78,7 +79,8 @@ public class TestConfig extends Config {
 
 	@PostConstruct
 	public void init() {
-		traceabilityLogService.setEnabled(false);
+		// Traceability is now controlled by application-jms-test.properties
+		// Don't disable it here to allow JMS-based tests to run properly
 		initialiseIndices(false);
 	}
 
