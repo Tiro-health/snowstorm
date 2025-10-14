@@ -78,7 +78,7 @@ public abstract class AbstractTest {
 	@Autowired
 	private ElasticsearchOperations elasticsearchOperations;
 
-	@Autowired
+	@Autowired(required = false)
 	private JmsTestHelper jmsTestHelper;
 
 	@Value("${ims-security.roles.enabled}")
@@ -88,8 +88,10 @@ public abstract class AbstractTest {
 
 	@BeforeEach
 	void before() throws Exception {
-		// Ensure JMS broker is ready before tests execute
-		jmsTestHelper.waitForBrokerReady();
+		// Ensure JMS broker is ready before tests execute (only if JMS is configured)
+		if (jmsTestHelper != null) {
+			jmsTestHelper.waitForBrokerReady();
+		}
 
 		// Setup security
 		if (!rolesEnabled) {
@@ -102,8 +104,10 @@ public abstract class AbstractTest {
 		branchService.create(MAIN);
 		clearActivities();
 
-		// Give JMS listeners time to fully register
-		Thread.sleep(100);
+		// Give JMS listeners time to fully register (only if JMS is configured)
+		if (jmsTestHelper != null) {
+			Thread.sleep(100);
+		}
 	}
 
 	@AfterEach

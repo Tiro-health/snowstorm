@@ -4,15 +4,18 @@ import jakarta.jms.Connection;
 import jakarta.jms.ConnectionFactory;
 import jakarta.jms.JMSException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.test.context.TestComponent;
 import org.springframework.stereotype.Component;
 
 /**
  * Helper class for managing JMS broker lifecycle in tests.
  * Ensures the ActiveMQ broker is fully initialized before tests execute.
+ * This bean is only created when a ConnectionFactory bean is available in the context.
  */
 @Component
 @TestComponent
+@ConditionalOnBean(ConnectionFactory.class)
 public class JmsTestHelper {
 
 	@Autowired
