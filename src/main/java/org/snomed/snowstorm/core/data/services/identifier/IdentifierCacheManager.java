@@ -63,32 +63,39 @@ public class IdentifierCacheManager implements Runnable {
 		logger.info("Identifier cache manager polling commencing with {} second period.", pollingIntervalMinutes);
 		long pollingIntervalMillis = pollingIntervalMinutes * (long)1000;
 		while (stayAlive) {
-			Date timePollStarted = new Date();
-			checkTopUpRequired();
-			Date timePollCompleted = new Date();
-			//Have we exceeded a polling interval?
-			long timeTaken = timePollCompleted.getTime() - timePollStarted.getTime();
-			if (timeTaken > pollingIntervalMillis) {
-				logger.warn("Identifier cache top ups took longer than polling interval: {}ms", timeTaken);
-			} else {
-				long timeRemaining = pollingIntervalMillis - timeTaken;
-				try {
-					isSleeping = true;
-					//Don't mind being interrupted while sleeping.
-					Thread.sleep(timeRemaining);
-					isSleeping = false;
-				} catch (InterruptedException e) {
-					logger.info("Identifier cache manager sleep interrupted.");
+			try {
+				Date timePollStarted = new Date();
+				checkTopUpRequired();
+				Date timePollCompleted = new Date();
+				//Have we exceeded a polling interval?
+				long timeTaken = timePollCompleted.getTime() - timePollStarted.getTime();
+				if (timeTaken > pollingIntervalMillis) {
+					logger.warn("Identifier cache top ups took longer than polling interval: {}ms", timeTaken);
+				} else {
+					long timeRemaining = pollingIntervalMillis - timeTaken;
+					try {
+						isSleeping = true;
+						//Don't mind being interrupted while sleeping.
+						Thread.sleep(timeRemaining);
+						isSleeping = false;
+					} catch (InterruptedException e) {
+						logger.info("Identifier cache manager sleep interrupted.");
+						break;
+					}
 				}
+			} catch (Exception e) {
+				logger.error("Unexpected error in identifier cache manager daemon", e);
 			}
 		}
 		logger.info("Identifier cache manager polling stopped.");
 	}
 	
 	public boolean topUpInProgress() {
-		for (IdentifierCache thisCache : identifierCaches) {
-			if (thisCache.isTopUpInProgress()) {
-				return true;
+		synchronized (identifierCaches) {
+			for (IdentifierCache thisCache : identifierCaches) {
+				if (thisCache.isTopUpInProgress()) {
+					return true;
+				}
 			}
 		}
 		return false;
@@ -97,9 +104,11 @@ public class IdentifierCacheManager implements Runnable {
 	void checkTopUpRequired() {
 		try {
 			//Work through each cache and see if number of identifiers is below top up level
-			for (IdentifierCache thisCache : identifierCaches) {
-				if ((double)thisCache.identifiersAvailable() < (double)thisCache.getMaxCapacity() * topUpLevel) {
-					topUp(thisCache, 0);
+			synchronized (identifierCaches) {
+				for (IdentifierCache thisCache : identifierCaches) {
+					if ((double)thisCache.identifiersAvailable() < (double)thisCache.getMaxCapacity() * topUpLevel) {
+						topUp(thisCache, 0);
+					}
 				}
 			}
 		} catch (Exception e) {
@@ -214,8 +223,10 @@ public class IdentifierCacheManager implements Runnable {
 
 	public void stopBackgroundTask() {
 		stayAlive = false;
-		cacheDaemon.interrupt();
-		cacheDaemon = null;
+		if (cacheDaemon != null) {
+			cacheDaemon.interrupt();
+			cacheDaemon = null;
+		}
 		identifierCaches.clear();
 	}
 
