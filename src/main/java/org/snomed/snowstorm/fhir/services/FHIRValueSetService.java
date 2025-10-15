@@ -698,6 +698,8 @@ public class FHIRValueSetService {
 		}).toList();
 		Map<String, List<ValueSet.ConceptReferenceDesignationComponent>> languageToDesignation = new LinkedHashMap<>();
 		Map<String, List<Locale>> languageToVarieties = new LinkedHashMap<>();
+		// Keep ordered list to preserve original designation order from FHIRConcept
+		List<ValueSet.ConceptReferenceDesignationComponent> orderedDesignations = new ArrayList<>();
 		List<Pair<LanguageDialect, Double>> weightedLanguages = ControllerHelper.parseAcceptLanguageHeaderWithWeights(displayLanguage,true);
 		Locale defaultLocale = Locale.forLanguageTag(defaultConceptLanguage);;
 		languageToVarieties.put(defaultLocale.getLanguage(), new ArrayList<>());
@@ -728,6 +730,8 @@ public class FHIRValueSetService {
 						languageToDesignation.put(designation.getLanguage(), new ArrayList<>());
 					}
 					languageToDesignation.get(designation.getLanguage()).add(designationComponent);
+					// Also add to ordered list to preserve insertion order
+					orderedDesignations.add(designationComponent);
 				}
 			}
 
@@ -743,12 +747,11 @@ public class FHIRValueSetService {
 		}
 
 		if (includeDesignations) {
+			// Use orderedDesignations to preserve original order, apply language filter
 			List<ValueSet.ConceptReferenceDesignationComponent> newDesignations = new ArrayList<>();
-			for (Map.Entry<String, List<ValueSet.ConceptReferenceDesignationComponent>> entry : languageToDesignation.entrySet() ){
-				for (ValueSet.ConceptReferenceDesignationComponent designation : entry.getValue()) {
-					if(designationLang.isEmpty() || designationLang.contains(designation.getLanguage())) {
-						newDesignations.add(designation);
-					}
+			for (ValueSet.ConceptReferenceDesignationComponent designation : orderedDesignations) {
+				if(designationLang.isEmpty() || designationLang.contains(designation.getLanguage())) {
+					newDesignations.add(designation);
 				}
 			}
 			newDesignations.addAll(noLanguage);
