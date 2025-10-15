@@ -26,7 +26,6 @@ public class ECLQueryServiceFilterTestConfig extends ECLQueryTestConfig {
 	@PostConstruct
 	public void beforeAll() throws ServiceException, InterruptedException {
 		deleteAll();
-		branchService.create(MAIN);
 
 		List<Concept> allConcepts = new ArrayList<>();
 
@@ -40,6 +39,7 @@ public class ECLQueryServiceFilterTestConfig extends ECLQueryTestConfig {
 		allConcepts.add(new Concept(REFSET_HISTORICAL_ASSOCIATION).addRelationship(new Relationship(ISA, REFSET)));
 		allConcepts.add(new Concept(REFSET_SAME_AS_ASSOCIATION).addRelationship(new Relationship(ISA, REFSET_HISTORICAL_ASSOCIATION)));
 		allConcepts.add(new Concept(REFSET_SIMILAR_TO_ASSOCIATION).addRelationship(new Relationship(ISA, REFSET_HISTORICAL_ASSOCIATION)));
+		branchService.create(MAIN);
 		createConceptsAndVersionCodeSystem(allConcepts, 20200131);
 
 		allConcepts.add(new Concept("100001").addDescription(new Description("Athlete's heart (disorder)"))
