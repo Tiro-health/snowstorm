@@ -696,8 +696,8 @@ public class FHIRValueSetService {
 			}
 
 		}).toList();
-		Map<String, List<ValueSet.ConceptReferenceDesignationComponent>> languageToDesignation = new HashMap<>();
-		Map<String, List<Locale>> languageToVarieties = new HashMap<>();
+		Map<String, List<ValueSet.ConceptReferenceDesignationComponent>> languageToDesignation = new LinkedHashMap<>();
+		Map<String, List<Locale>> languageToVarieties = new LinkedHashMap<>();
 		List<Pair<LanguageDialect, Double>> weightedLanguages = ControllerHelper.parseAcceptLanguageHeaderWithWeights(displayLanguage,true);
 		Locale defaultLocale = Locale.forLanguageTag(defaultConceptLanguage);;
 		languageToVarieties.put(defaultLocale.getLanguage(), new ArrayList<>());
