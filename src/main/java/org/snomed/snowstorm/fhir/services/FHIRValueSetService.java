@@ -705,26 +705,7 @@ public class FHIRValueSetService {
 
 		List<ValueSet.ConceptReferenceDesignationComponent> noLanguage = new ArrayList<>();
 
-		for (ValueSet.ConceptReferenceDesignationComponent designation : component.getDesignation()){
-			if (designation.getLanguage()==null) {
-				noLanguage.add(designation);
-			} else {
-				Locale designationLocale = Locale.forLanguageTag(designation.getLanguage());
-				if (languageToVarieties.get(designationLocale.getLanguage()) == null) {
-					List<Locale> allVarieties = new ArrayList<>();
-					languageToVarieties.put(designationLocale.getLanguage(), allVarieties);
-				}
-				languageToVarieties.get(designationLocale.getLanguage()).add(designationLocale);
-				if (!languageToDesignation.containsKey(designation.getLanguage())) {
-					languageToDesignation.put(designation.getLanguage(), new ArrayList<>());
-				}
-				languageToDesignation.get(designation.getLanguage()).add(designation);
-			}
-
-		}
-
-
-			for (FHIRDesignation designation : ListUtils.emptyIfNull(concept.getDesignations())) {
+		for (FHIRDesignation designation : ListUtils.emptyIfNull(concept.getDesignations())) {
 				ValueSet.ConceptReferenceDesignationComponent designationComponent = new ValueSet.ConceptReferenceDesignationComponent();
 				designationComponent.setLanguage(designation.getLanguage());
 				designationComponent.setUse(designation.getUseCoding());
