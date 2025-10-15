@@ -12,7 +12,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration;
 import org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.PropertySource;
@@ -29,7 +28,6 @@ import java.util.Properties;
 
 @PropertySource(value = "classpath:application.properties", encoding = "UTF-8")
 @PropertySource(value = "classpath:application-test.properties", encoding = "UTF-8")
-@TestConfiguration
 @SpringBootApplication(
 		exclude = {
 				ElasticsearchRestClientAutoConfiguration.class,
