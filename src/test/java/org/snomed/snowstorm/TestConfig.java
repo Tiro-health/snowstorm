@@ -6,8 +6,11 @@ import org.slf4j.LoggerFactory;
 import org.snomed.snowstorm.config.Config;
 import org.snomed.snowstorm.core.data.services.identifier.IdentifierCacheManager;
 import org.snomed.snowstorm.core.data.services.traceability.TraceabilityLogService;
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration;
 import org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration;
@@ -17,8 +20,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.PropertySource;
-import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
-import org.springframework.core.env.MutablePropertySources;
+import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.data.elasticsearch.client.ClientConfiguration;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
@@ -148,15 +150,21 @@ public class TestConfig extends Config {
 	}
 
 	/**
-	 * Enable random value property source for test context.
-	 * This allows ${random.uuid} and other random placeholders to work in test properties.
+	 * Add RandomValuePropertySource to the environment so ${random.uuid} placeholders work in tests.
 	 */
 	@Bean
-	public static PropertySourcesPlaceholderConfigurer propertySourcesPlaceholderConfigurer() {
-		PropertySourcesPlaceholderConfigurer configurer = new PropertySourcesPlaceholderConfigurer();
-		MutablePropertySources sources = new MutablePropertySources();
-		sources.addFirst(new RandomValuePropertySource());
-		configurer.setPropertySources(sources);
-		return configurer;
+	public static BeanFactoryPostProcessor randomValuePropertySourcePostProcessor() {
+		return new BeanFactoryPostProcessor() {
+			@Override
+			public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
+				if (beanFactory instanceof org.springframework.context.support.GenericApplicationContext) {
+					org.springframework.context.support.GenericApplicationContext context = 
+						(org.springframework.context.support.GenericApplicationContext) beanFactory;
+					ConfigurableEnvironment environment = context.getEnvironment();
+					environment.getPropertySources().addLast(new RandomValuePropertySource());
+					LOGGER.info("Added RandomValuePropertySource to test environment");
+				}
+			}
+		};
 	}
 }
