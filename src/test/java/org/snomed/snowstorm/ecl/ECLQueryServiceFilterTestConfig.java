@@ -2,7 +2,6 @@ package org.snomed.snowstorm.ecl;
 
 import org.jetbrains.annotations.NotNull;
 import org.snomed.snowstorm.core.data.domain.*;
-import jakarta.annotation.PostConstruct;
 import org.snomed.snowstorm.core.data.services.ServiceException;
 
 import java.util.ArrayList;
@@ -23,8 +22,7 @@ public class ECLQueryServiceFilterTestConfig extends ECLQueryTestConfig {
 	public static final String IPS_REFSET = "816080008";
 	public static final String ICD_MAP_REFSET = "447562003";
 
-	@PostConstruct
-	public void beforeAll() throws ServiceException, InterruptedException {
+	public void setupTestData() throws ServiceException, InterruptedException {
 		deleteAll();
 		branchService.create(MAIN);
 

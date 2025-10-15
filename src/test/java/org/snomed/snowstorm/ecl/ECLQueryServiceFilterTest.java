@@ -3,8 +3,10 @@ package org.snomed.snowstorm.ecl;
 import io.kaicode.elasticvc.api.BranchCriteria;
 import io.kaicode.elasticvc.api.VersionControlHelper;
 import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.snomed.snowstorm.TestConfig;
 import org.snomed.snowstorm.core.data.domain.ConceptMini;
@@ -29,6 +31,7 @@ import static org.snomed.snowstorm.core.data.domain.Concepts.REFSET_SAME_AS_ASSO
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = {TestConfig.class, ECLQueryServiceFilterTestConfig.class})
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ECLQueryServiceFilterTest {
 
 	@Autowired
@@ -43,10 +46,18 @@ class ECLQueryServiceFilterTest {
 	@Autowired
 	private ReferenceSetMemberService memberService;
 
+	@Autowired
+	private ECLQueryServiceFilterTestConfig testConfig;
+
 	protected Collection<String> allConceptIds = new HashSet<>();
 	protected BranchCriteria branchCriteria;
 
 	private static final PageRequest PAGE_REQUEST = PageRequest.of(0, 10000);
+
+	@BeforeAll
+	void setupTestData() throws Exception {
+		testConfig.setupTestData();
+	}
 
 	@BeforeEach
 	void setup() {
