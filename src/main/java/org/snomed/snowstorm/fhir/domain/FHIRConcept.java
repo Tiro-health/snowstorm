@@ -193,9 +193,8 @@ public class FHIRConcept implements FHIRGraphNode {
 			activeDescriptions.sort(Comparator.comparing(Description::getType).thenComparing(description -> !description.hasAcceptability(requestedLanguageDialects)));
 			for (Description description : activeDescriptions) {
 				FHIRDesignation designation = new FHIRDesignation(description.getLanguageCode(), description.getTerm());
-				if (description.hasAcceptability(requestedLanguageDialects)) {
-					designation.setUse(SNOMED_URI, description.getTypeId());
-				}
+				// Always set the use field based on the description type
+				designation.setUse(SNOMED_URI, description.getTypeId());
 				designations.add(designation);
 			}
 		}
