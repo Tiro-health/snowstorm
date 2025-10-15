@@ -4,13 +4,17 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.snowstorm.config.Config;
+import org.snomed.snowstorm.core.data.services.identifier.IdentifierCacheManager;
 import org.snomed.snowstorm.core.data.services.traceability.TraceabilityLogService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration;
 import org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.data.elasticsearch.client.ClientConfiguration;
 import org.testcontainers.DockerClientFactory;
@@ -108,5 +112,35 @@ public class TestConfig extends Config {
 		}
 		return ClientConfiguration.builder()
 				.connectedTo("localhost:9200").build();
+	}
+
+	/**
+	 * Override IdentifierCacheManager bean to create a non-daemon version for tests.
+	 * The daemon thread can cause context initialization issues and test timeouts.
+	 */
+	@Bean
+	@Primary
+	@Override
+	public IdentifierCacheManager getIdentifierCacheManager(@Value("${cis.cache.concept-prefetch-count}") int conceptIdPrefetchCount) {
+		TestIdentifierCacheManager icm = new TestIdentifierCacheManager();
+		// Concept
+		icm.addCache(0, "00", conceptIdPrefetchCount);
+		// Description
+		icm.addCache(0, "01", conceptIdPrefetchCount * 2);
+		// Relationship
+		icm.addCache(0, "02", conceptIdPrefetchCount * 4);
+		return icm;
+	}
+
+	/**
+	 * Test version of IdentifierCacheManager that doesn't start a daemon thread.
+	 * This prevents context initialization issues and test timeouts.
+	 */
+	static class TestIdentifierCacheManager extends IdentifierCacheManager {
+		@Override
+		public void startBackgroundTask() {
+			LOGGER.info("Skipping IdentifierCacheManager daemon thread startup in test mode");
+			// Don't start daemon thread in tests
+		}
 	}
 }
