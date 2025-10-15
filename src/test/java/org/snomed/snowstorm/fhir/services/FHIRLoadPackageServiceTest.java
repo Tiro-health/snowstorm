@@ -51,19 +51,21 @@ class FHIRLoadPackageServiceTest extends AbstractFHIRTest {
 
 	@AfterEach
 	public void testAfter() {
-		valueSetRepository.deleteById("device-status-reason");
-		codeSystemRepository.deleteById("device-status-reason");
+		valueSetRepository.deleteById("device-status-reason-0.1.0");
+		codeSystemRepository.deleteById("device-status-reason-0.1.0");
 	}
 
 	@Test
 	void uploadPackageResources() throws IOException {
-		assertFalse(codeSystemRepository.findById("device-status-reason").isPresent());
-		assertFalse(valueSetRepository.findById("device-status-reason").isPresent());
+		String codeSystemId = "device-status-reason-0.1.0";
+		String valueSetId = "device-status-reason-0.1.0";
+		assertFalse(codeSystemRepository.findById(codeSystemId).isPresent());
+		assertFalse(valueSetRepository.findById(valueSetId).isPresent());
 
 		service.uploadPackageResources(packageFile, Collections.singleton("*"), packageFile.getName(), true);
 
-		assertTrue(codeSystemRepository.findById("device-status-reason").isPresent());
-		assertTrue(valueSetRepository.findById("device-status-reason").isPresent());
+		assertTrue(codeSystemRepository.findById(codeSystemId).isPresent());
+		assertTrue(valueSetRepository.findById(valueSetId).isPresent());
 
 		// Expand imported implicit value set, that includes codes from imported code system
 		//
