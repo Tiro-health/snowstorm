@@ -12,10 +12,13 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration;
 import org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import org.springframework.boot.env.RandomValuePropertySource;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
+import org.springframework.core.env.MutablePropertySources;
 import org.springframework.data.elasticsearch.client.ClientConfiguration;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.elasticsearch.ElasticsearchContainer;
@@ -142,5 +145,18 @@ public class TestConfig extends Config {
 			LOGGER.info("Skipping IdentifierCacheManager daemon thread startup in test mode");
 			// Don't start daemon thread in tests
 		}
+	}
+
+	/**
+	 * Enable random value property source for test context.
+	 * This allows ${random.uuid} and other random placeholders to work in test properties.
+	 */
+	@Bean
+	public static PropertySourcesPlaceholderConfigurer propertySourcesPlaceholderConfigurer() {
+		PropertySourcesPlaceholderConfigurer configurer = new PropertySourcesPlaceholderConfigurer();
+		MutablePropertySources sources = new MutablePropertySources();
+		sources.addFirst(new RandomValuePropertySource());
+		configurer.setPropertySources(sources);
+		return configurer;
 	}
 }
