@@ -71,7 +71,7 @@ class FHIRCodeSystemServiceTest extends AbstractFHIRTest {
 			codeSystemService.createUpdate(codeSystem);
 			fail(SHOULD_HAVE_THROWN_EXCEPTION_BEFORE_THIS_LINE);
 		} catch (SnowstormFHIRServerResponseException e) {
-			assertEquals(OperationOutcome.IssueType.NOTSUPPORTED, e.getIssueCode());
+			assertEquals(INVARIANT, e.getIssueCode());
 		}
 	}
 
