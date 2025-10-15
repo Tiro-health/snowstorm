@@ -19,7 +19,7 @@ class FHIRCodeSystemProviderInstancesTest extends AbstractFHIRTest {
 		expectResponse(response, 200);
 		Bundle bundle = fhirJsonParser.parseResource(Bundle.class, response.getBody());
 		assertNotNull(bundle.getEntry());
-		assertEquals(4, bundle.getEntry().size(), () -> {
+		assertEquals(5, bundle.getEntry().size(), () -> {
 			StringBuilder buffer = new StringBuilder();
 			for (BundleEntryComponent component : bundle.getEntry()) {
 				buffer.append(component.getFullUrl()).append(" ");
@@ -28,7 +28,8 @@ class FHIRCodeSystemProviderInstancesTest extends AbstractFHIRTest {
 		});
 		for (BundleEntryComponent entry : bundle.getEntry()) {
 			CodeSystem cs = (CodeSystem) entry.getResource();
-			assertTrue(cs.getTitle().contains("SNOMED CT") || cs.getTitle().contains("ICD-10"), () -> "Found title " + cs.getTitle());
+			assertTrue(cs.getTitle().contains("SNOMED CT") || cs.getTitle().contains("ICD-10") || cs.getTitle().contains("FHIR"), 
+				() -> "Found title " + cs.getTitle());
 		}
 	}
 	
@@ -39,11 +40,12 @@ class FHIRCodeSystemProviderInstancesTest extends AbstractFHIRTest {
 		expectResponse(response, 200);
 		Bundle bundle = fhirJsonParser.parseResource(Bundle.class, response.getBody());
 		assertNotNull(bundle.getEntry());
-		assertEquals(4, bundle.getEntry().size());
+		assertEquals(5, bundle.getEntry().size());
 		for (BundleEntryComponent entry : bundle.getEntry()) {
 			CodeSystem cs = (CodeSystem)(entry.getResource());
 			String title = cs.getTitle();
-			assertTrue(cs.getTitle().contains("SNOMED CT") || cs.getTitle().contains("ICD-10"), () -> "Found title " + cs.getTitle());
+			assertTrue(cs.getTitle().contains("SNOMED CT") || cs.getTitle().contains("ICD-10") || cs.getTitle().contains("FHIR"), 
+				() -> "Found title " + cs.getTitle());
 		}
 	}
 	
