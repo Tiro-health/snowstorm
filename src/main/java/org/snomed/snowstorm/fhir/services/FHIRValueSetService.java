@@ -755,6 +755,16 @@ public class FHIRValueSetService {
 				}
 			}
 			newDesignations.addAll(noLanguage);
+			
+			// Sort so that display designations come first
+			newDesignations.sort((d1, d2) -> {
+				boolean d1IsDisplay = d1.hasUse() && "display".equals(d1.getUse().getCode());
+				boolean d2IsDisplay = d2.hasUse() && "display".equals(d2.getUse().getCode());
+				if (d1IsDisplay && !d2IsDisplay) return -1;
+				if (!d1IsDisplay && d2IsDisplay) return 1;
+				return 0; // Preserve order for non-display designations
+			});
+			
 			component.setDesignation(newDesignations);
 		} else {
 			component.setDesignation(emptyList());
