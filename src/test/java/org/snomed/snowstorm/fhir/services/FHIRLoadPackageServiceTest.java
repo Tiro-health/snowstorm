@@ -51,14 +51,14 @@ class FHIRLoadPackageServiceTest extends AbstractFHIRTest {
 
 	@AfterEach
 	public void testAfter() {
-		valueSetRepository.deleteById("device-status-reason-0.1.0");
+		valueSetRepository.deleteById("device-status-reason");
 		codeSystemRepository.deleteById("device-status-reason-0.1.0");
 	}
 
 	@Test
 	void uploadPackageResources() throws IOException {
 		String codeSystemId = "device-status-reason-0.1.0";
-		String valueSetId = "device-status-reason-0.1.0";
+		String valueSetId = "device-status-reason";
 		assertFalse(codeSystemRepository.findById(codeSystemId).isPresent());
 		assertFalse(valueSetRepository.findById(valueSetId).isPresent());
 
