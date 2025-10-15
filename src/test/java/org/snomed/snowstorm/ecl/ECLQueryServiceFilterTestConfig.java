@@ -4,7 +4,6 @@ import org.jetbrains.annotations.NotNull;
 import org.snomed.snowstorm.core.data.domain.*;
 import jakarta.annotation.PostConstruct;
 import org.snomed.snowstorm.core.data.services.ServiceException;
-import org.springframework.boot.test.context.TestConfiguration;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,7 +15,6 @@ import static io.kaicode.elasticvc.domain.Branch.MAIN;
 import static org.snomed.snowstorm.TestConcepts.DISORDER;
 import static org.snomed.snowstorm.core.data.domain.Concepts.*;
 
-@TestConfiguration
 public class ECLQueryServiceFilterTestConfig extends ECLQueryTestConfig {
 
 	private static final String DEF_STATUS = "900000000000444006";
