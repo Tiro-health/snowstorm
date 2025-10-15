@@ -696,14 +696,15 @@ public class FHIRValueSetService {
 			}
 
 		}).toList();
-		Map<String, ValueSet.ConceptReferenceDesignationComponent> languageToDesignation = new HashMap<>();
+		Map<String, List<ValueSet.ConceptReferenceDesignationComponent>> languageToDesignation = new HashMap<>();
 		Map<String, List<Locale>> languageToVarieties = new HashMap<>();
 		List<Pair<LanguageDialect, Double>> weightedLanguages = ControllerHelper.parseAcceptLanguageHeaderWithWeights(displayLanguage,true);
 		Locale defaultLocale = Locale.forLanguageTag(defaultConceptLanguage);;
 		languageToVarieties.put(defaultLocale.getLanguage(), new ArrayList<>());
 		languageToVarieties.get(defaultLocale.getLanguage()).add(defaultLocale);
 
-		languageToDesignation.put(defaultConceptLanguage, new ValueSet.ConceptReferenceDesignationComponent().setValue(component.getDisplay())
+		languageToDesignation.put(defaultConceptLanguage, new ArrayList<>());
+		languageToDesignation.get(defaultConceptLanguage).add(new ValueSet.ConceptReferenceDesignationComponent().setValue(component.getDisplay())
 				.setLanguage(defaultConceptLanguage) );
 
 		List<ValueSet.ConceptReferenceDesignationComponent> noLanguage = new ArrayList<>();
@@ -718,7 +719,10 @@ public class FHIRValueSetService {
 					languageToVarieties.put(designationLocale.getLanguage(), allVarieties);
 				}
 				languageToVarieties.get(designationLocale.getLanguage()).add(designationLocale);
-				languageToDesignation.put(designation.getLanguage(), designation);
+				if (!languageToDesignation.containsKey(designation.getLanguage())) {
+					languageToDesignation.put(designation.getLanguage(), new ArrayList<>());
+				}
+				languageToDesignation.get(designation.getLanguage()).add(designation);
 			}
 
 		}
@@ -743,7 +747,10 @@ public class FHIRValueSetService {
 						languageToVarieties.put(designationLocale.getLanguage(), allVarieties);
 					}
 					languageToVarieties.get(designationLocale.getLanguage()).add(designationLocale);
-					languageToDesignation.put(designation.getLanguage(), designationComponent);
+					if (!languageToDesignation.containsKey(designation.getLanguage())) {
+						languageToDesignation.put(designation.getLanguage(), new ArrayList<>());
+					}
+					languageToDesignation.get(designation.getLanguage()).add(designationComponent);
 				}
 			}
 
@@ -752,23 +759,26 @@ public class FHIRValueSetService {
 			component.setDisplay(null);
 		}
 		else if(includeDesignations) {  // "act-class" test case from "tho" test group is expecting the "display" field to be in the expansion, not the one in "designation". Param "includeDesignations" not present for this test case
-			component.setDisplay(languageToDesignation.get(requestedLanguage).getValue());
+			List<ValueSet.ConceptReferenceDesignationComponent> requestedDesignations = languageToDesignation.get(requestedLanguage);
+			if (requestedDesignations != null && !requestedDesignations.isEmpty()) {
+				component.setDisplay(requestedDesignations.get(0).getValue());
+			}
 		}
 
 		if (includeDesignations) {
 			List<ValueSet.ConceptReferenceDesignationComponent> newDesignations = new ArrayList<>();
-			for (Map.Entry<String, ValueSet.ConceptReferenceDesignationComponent> entry : languageToDesignation.entrySet() ){
+			for (Map.Entry<String, List<ValueSet.ConceptReferenceDesignationComponent>> entry : languageToDesignation.entrySet() ){
 
 				if (!entry.getKey().equals(requestedLanguage)) {
-					if (entry.getKey().equals(defaultConceptLanguage)) {
-						entry.getValue().setUse(new Coding("http://terminology.hl7.org/CodeSystem/designation-usage", "display", null));
+					for (ValueSet.ConceptReferenceDesignationComponent designation : entry.getValue()) {
+						if (entry.getKey().equals(defaultConceptLanguage)) {
+							designation.setUse(new Coding("http://terminology.hl7.org/CodeSystem/designation-usage", "display", null));
+						}
+
+						if(designationLang.isEmpty() || designationLang.contains(designation.getLanguage())) {
+							newDesignations.add(designation);
+						}
 					}
-
-
-					if(designationLang.isEmpty() || designationLang.contains(entry.getValue().getLanguage())) {
-						newDesignations.add(entry.getValue());
-					}
-
 				}
 			}
 			newDesignations.addAll(noLanguage);
