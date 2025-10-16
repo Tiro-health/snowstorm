@@ -707,11 +707,23 @@ public class FHIRValueSetService {
 
 		List<ValueSet.ConceptReferenceDesignationComponent> noLanguage = new ArrayList<>();
 
+		// Debug logging for designation processing
+		logger.info("DESIGNATION_DEBUG: Processing concept {}, includeDesignations={}, designations={}", 
+			concept.getCode(), includeDesignations, concept.getDesignations() != null ? concept.getDesignations().size() : "null");
+		if (includeDesignations && concept.getDesignations() != null) {
+			for (int i = 0; i < concept.getDesignations().size(); i++) {
+				FHIRDesignation d = concept.getDesignations().get(i);
+				String useCode = d.getUseCoding() != null ? d.getUseCoding().getCode() : "null";
+				logger.info("DESIGNATION_DEBUG: [{}] lang={}, use={}, value={}", i, d.getLanguage(), useCode, d.getValue());
+			}
+		}
+
 		for (FHIRDesignation designation : ListUtils.emptyIfNull(concept.getDesignations())) {
 				ValueSet.ConceptReferenceDesignationComponent designationComponent = new ValueSet.ConceptReferenceDesignationComponent();
 				designationComponent.setLanguage(designation.getLanguage());
 				designationComponent.setUse(designation.getUseCoding());
-				designationComponent.setValue(designation.getValue());
+				String designationValue = designation.getValue();
+				designationComponent.setValue(designationValue);
 				Optional.ofNullable(designation.getExtensions()).orElse(emptyList()).forEach(
 						e -> {
 							designationComponent.addExtension(e.getHapi());
