@@ -5,6 +5,8 @@ import ca.uhn.fhir.jpa.entity.TermConceptDesignation;
 import ca.uhn.fhir.jpa.entity.TermConceptParentChildLink;
 import ca.uhn.fhir.jpa.entity.TermConceptProperty;
 import org.hl7.fhir.r4.model.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.snomed.snowstorm.core.data.domain.ConceptMini;
 import org.snomed.snowstorm.core.data.domain.Description;
 import org.snomed.snowstorm.core.pojo.LanguageDialect;
@@ -24,6 +26,7 @@ import static org.snomed.snowstorm.fhir.config.FHIRConstants.SNOMED_URI;
 @Document(indexName = "#{@indexNameProvider.indexName('fhir-concept')}", createIndex = false)
 public class FHIRConcept implements FHIRGraphNode {
 
+	private static final Logger staticLogger = LoggerFactory.getLogger(FHIRConcept.class);
 	public static final String EXTENSION_MARKER = "://";
 
 	public interface Fields {
@@ -184,6 +187,13 @@ public class FHIRConcept implements FHIRGraphNode {
 		active = !Boolean.FALSE.equals(snomedConceptMini.getActive());
 		if (includeDesignations) {
 			designations = new ArrayList<>();
+			// Debug logging
+			staticLogger.info("FHIRCONCEPT_DEBUG: concept={}, PT={}, FSN={}, displayTerm.lang={}, displayTerm.term={}", 
+				code, 
+				snomedConceptMini.getPt() != null ? "present" : "null",
+				snomedConceptMini.getFsn() != null ? "present" : "null",
+				displayTerm.getLang(),
+				displayTerm.getTerm());
 			// Add display
 			designations.add(new FHIRDesignation(displayTerm.getLang(), FHIRConstants.HL7_DESIGNATION_USAGE, FHIRConstants.DISPLAY, displayTerm.getTerm()));
 
