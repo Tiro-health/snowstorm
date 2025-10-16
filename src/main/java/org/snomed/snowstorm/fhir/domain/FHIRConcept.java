@@ -177,9 +177,10 @@ public class FHIRConcept implements FHIRGraphNode {
 		code = snomedConceptMini.getConceptId();
 		codeLower = code.toLowerCase();
 		TermLangPojo displayTerm = snomedConceptMini.getPt();
-		if (displayTerm == null) {
+		// Check if PT has valid term, not just if PT object exists
+		if (displayTerm == null || displayTerm.getTerm() == null) {
 			displayTerm = snomedConceptMini.getFsn();
-			if (displayTerm == null) {
+			if (displayTerm == null || displayTerm.getTerm() == null) {
 				displayTerm = new TermLangPojo(code, "en");
 			}
 		}
@@ -187,13 +188,6 @@ public class FHIRConcept implements FHIRGraphNode {
 		active = !Boolean.FALSE.equals(snomedConceptMini.getActive());
 		if (includeDesignations) {
 			designations = new ArrayList<>();
-			// Debug logging
-			staticLogger.info("FHIRCONCEPT_DEBUG: concept={}, PT={}, FSN={}, displayTerm.lang={}, displayTerm.term={}", 
-				code, 
-				snomedConceptMini.getPt() != null ? "present" : "null",
-				snomedConceptMini.getFsn() != null ? "present" : "null",
-				displayTerm.getLang(),
-				displayTerm.getTerm());
 			// Add display
 			designations.add(new FHIRDesignation(displayTerm.getLang(), FHIRConstants.HL7_DESIGNATION_USAGE, FHIRConstants.DISPLAY, displayTerm.getTerm()));
 
