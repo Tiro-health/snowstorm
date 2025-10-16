@@ -143,6 +143,7 @@ public class FHIRValueSetService {
 	private final Map<String, Set<String>> codeSystemVersionToRefsetsWithMembersCache = new HashMap<>();
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
+    private static final Logger staticLogger = LoggerFactory.getLogger(FHIRValueSetService.class);
 
 	public Page<FHIRValueSet> findAll(Pageable pageable) {
 		NativeQuery searchQuery = new NativeQueryBuilder()
@@ -708,13 +709,13 @@ public class FHIRValueSetService {
 		List<ValueSet.ConceptReferenceDesignationComponent> noLanguage = new ArrayList<>();
 
 		// Debug logging for designation processing
-		logger.info("DESIGNATION_DEBUG: Processing concept {}, includeDesignations={}, designations={}", 
+		staticLogger.info("DESIGNATION_DEBUG: Processing concept {}, includeDesignations={}, designations={}", 
 			concept.getCode(), includeDesignations, concept.getDesignations() != null ? concept.getDesignations().size() : "null");
 		if (includeDesignations && concept.getDesignations() != null) {
 			for (int i = 0; i < concept.getDesignations().size(); i++) {
 				FHIRDesignation d = concept.getDesignations().get(i);
 				String useCode = d.getUseCoding() != null ? d.getUseCoding().getCode() : "null";
-				logger.info("DESIGNATION_DEBUG: [{}] lang={}, use={}, value={}", i, d.getLanguage(), useCode, d.getValue());
+				staticLogger.info("DESIGNATION_DEBUG: [{}] lang={}, use={}, value={}", i, d.getLanguage(), useCode, d.getValue());
 			}
 		}
 
