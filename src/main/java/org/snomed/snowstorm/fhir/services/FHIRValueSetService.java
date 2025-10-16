@@ -707,6 +707,24 @@ public class FHIRValueSetService {
 
 		List<ValueSet.ConceptReferenceDesignationComponent> noLanguage = new ArrayList<>();
 
+		// Create display designation from component.getDisplay() if includeDesignations is true
+		if (component.getDisplay() != null && includeDesignations) {
+			ValueSet.ConceptReferenceDesignationComponent displayDesignation = 
+				new ValueSet.ConceptReferenceDesignationComponent()
+					.setValue(component.getDisplay())
+					.setLanguage(defaultConceptLanguage)
+					.setUse(new Coding(
+						"http://terminology.hl7.org/CodeSystem/designation-usage",
+						"display",
+						null
+					));
+			orderedDesignations.add(displayDesignation);
+			if (!languageToDesignation.containsKey(defaultConceptLanguage)) {
+				languageToDesignation.put(defaultConceptLanguage, new ArrayList<>());
+			}
+			languageToDesignation.get(defaultConceptLanguage).add(displayDesignation);
+		}
+
 		for (FHIRDesignation designation : ListUtils.emptyIfNull(concept.getDesignations())) {
 				ValueSet.ConceptReferenceDesignationComponent designationComponent = new ValueSet.ConceptReferenceDesignationComponent();
 				designationComponent.setLanguage(designation.getLanguage());
