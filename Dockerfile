@@ -193,12 +193,15 @@ USER appuser
 
 # Run the app with environment variable support for Elasticsearch configuration
 # Use shell form to enable env var expansion
-# Environment variables from .env: ELASTICSEARCH_URLS, ELASTICSEARCH_API_KEY
+# Environment variables from .env: ELASTICSEARCH_URLS, ELASTICSEARCH_API_KEY, SYNDICATION_SECRET
 CMD java -Xms2g -Xmx4g --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED -jar /app/snowstorm.jar \
     ${ELASTICSEARCH_URLS:+--elasticsearch.urls=${ELASTICSEARCH_URLS}} \
     ${ELASTICSEARCH_API_KEY:+--elasticsearch.api-key=${ELASTICSEARCH_API_KEY}} \
+    ${SYNDICATION_SECRET:+--syndication.api.secret=${SYNDICATION_SECRET}} \
     --elasticsearch.index.prefix=snowstorm_ \
-    --snomed=http://snomed.info/sct/11000172109 \
+    --syndication \
+    --atc=https://raw.githubusercontent.com/ehealthplatformstandards/atc-terminology-publisher/main/atc-codesystem.csv \
+    --snomed=http://snomed.info/sct/11000172109/version/20250315 \
     --extension-country-code=BE \
     --loinc \
     --hl7
