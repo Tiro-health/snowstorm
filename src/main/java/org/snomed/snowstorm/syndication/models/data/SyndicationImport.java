@@ -29,7 +29,13 @@ public class SyndicationImport {
 
     public SyndicationImport() {}
 
-    public SyndicationImport(String terminology, String requestedVersion, String actualVersion, ImportJob.ImportStatus status, String exception) {
+    public SyndicationImport(
+        String terminology,
+        String requestedVersion,
+        String actualVersion,
+        ImportJob.ImportStatus status,
+        String exception
+    ) {
         this.terminology = terminology;
         this.requestedVersion = requestedVersion;
         this.actualVersion = actualVersion;
@@ -61,6 +67,4 @@ public class SyndicationImport {
     public long getTimestamp() {
         return timestamp;
     }
-
 }
-
