@@ -696,39 +696,23 @@ public class FHIRValueSetService {
 			}
 
 		}).toList();
-		Map<String, ValueSet.ConceptReferenceDesignationComponent> languageToDesignation = new HashMap<>();
-		Map<String, List<Locale>> languageToVarieties = new HashMap<>();
+		Map<String, List<ValueSet.ConceptReferenceDesignationComponent>> languageToDesignation = new LinkedHashMap<>();
+		Map<String, List<Locale>> languageToVarieties = new LinkedHashMap<>();
+		// Keep ordered list to preserve original designation order from FHIRConcept
+		List<ValueSet.ConceptReferenceDesignationComponent> orderedDesignations = new ArrayList<>();
 		List<Pair<LanguageDialect, Double>> weightedLanguages = ControllerHelper.parseAcceptLanguageHeaderWithWeights(displayLanguage,true);
 		Locale defaultLocale = Locale.forLanguageTag(defaultConceptLanguage);;
 		languageToVarieties.put(defaultLocale.getLanguage(), new ArrayList<>());
 		languageToVarieties.get(defaultLocale.getLanguage()).add(defaultLocale);
 
-		languageToDesignation.put(defaultConceptLanguage, new ValueSet.ConceptReferenceDesignationComponent().setValue(component.getDisplay())
-				.setLanguage(defaultConceptLanguage) );
-
 		List<ValueSet.ConceptReferenceDesignationComponent> noLanguage = new ArrayList<>();
 
-		for (ValueSet.ConceptReferenceDesignationComponent designation : component.getDesignation()){
-			if (designation.getLanguage()==null) {
-				noLanguage.add(designation);
-			} else {
-				Locale designationLocale = Locale.forLanguageTag(designation.getLanguage());
-				if (languageToVarieties.get(designationLocale.getLanguage()) == null) {
-					List<Locale> allVarieties = new ArrayList<>();
-					languageToVarieties.put(designationLocale.getLanguage(), allVarieties);
-				}
-				languageToVarieties.get(designationLocale.getLanguage()).add(designationLocale);
-				languageToDesignation.put(designation.getLanguage(), designation);
-			}
-
-		}
-
-
-			for (FHIRDesignation designation : ListUtils.emptyIfNull(concept.getDesignations())) {
+		for (FHIRDesignation designation : ListUtils.emptyIfNull(concept.getDesignations())) {
 				ValueSet.ConceptReferenceDesignationComponent designationComponent = new ValueSet.ConceptReferenceDesignationComponent();
 				designationComponent.setLanguage(designation.getLanguage());
 				designationComponent.setUse(designation.getUseCoding());
-				designationComponent.setValue(designation.getValue());
+				String designationValue = designation.getValue();
+				designationComponent.setValue(designationValue);
 				Optional.ofNullable(designation.getExtensions()).orElse(emptyList()).forEach(
 						e -> {
 							designationComponent.addExtension(e.getHapi());
@@ -743,7 +727,12 @@ public class FHIRValueSetService {
 						languageToVarieties.put(designationLocale.getLanguage(), allVarieties);
 					}
 					languageToVarieties.get(designationLocale.getLanguage()).add(designationLocale);
-					languageToDesignation.put(designation.getLanguage(), designationComponent);
+					if (!languageToDesignation.containsKey(designation.getLanguage())) {
+						languageToDesignation.put(designation.getLanguage(), new ArrayList<>());
+					}
+					languageToDesignation.get(designation.getLanguage()).add(designationComponent);
+					// Also add to ordered list to preserve insertion order
+					orderedDesignations.add(designationComponent);
 				}
 			}
 
@@ -752,26 +741,31 @@ public class FHIRValueSetService {
 			component.setDisplay(null);
 		}
 		else if(includeDesignations) {  // "act-class" test case from "tho" test group is expecting the "display" field to be in the expansion, not the one in "designation". Param "includeDesignations" not present for this test case
-			component.setDisplay(languageToDesignation.get(requestedLanguage).getValue());
+			List<ValueSet.ConceptReferenceDesignationComponent> requestedDesignations = languageToDesignation.get(requestedLanguage);
+			if (requestedDesignations != null && !requestedDesignations.isEmpty()) {
+				component.setDisplay(requestedDesignations.get(0).getValue());
+			}
 		}
 
 		if (includeDesignations) {
+			// Use orderedDesignations to preserve original order, apply language filter
 			List<ValueSet.ConceptReferenceDesignationComponent> newDesignations = new ArrayList<>();
-			for (Map.Entry<String, ValueSet.ConceptReferenceDesignationComponent> entry : languageToDesignation.entrySet() ){
-
-				if (!entry.getKey().equals(requestedLanguage)) {
-					if (entry.getKey().equals(defaultConceptLanguage)) {
-						entry.getValue().setUse(new Coding("http://terminology.hl7.org/CodeSystem/designation-usage", "display", null));
-					}
-
-
-					if(designationLang.isEmpty() || designationLang.contains(entry.getValue().getLanguage())) {
-						newDesignations.add(entry.getValue());
-					}
-
+			for (ValueSet.ConceptReferenceDesignationComponent designation : orderedDesignations) {
+				if(designationLang.isEmpty() || designationLang.contains(designation.getLanguage())) {
+					newDesignations.add(designation);
 				}
 			}
 			newDesignations.addAll(noLanguage);
+			
+			// Sort so that display designations come first
+			newDesignations.sort((d1, d2) -> {
+				boolean d1IsDisplay = d1.hasUse() && "display".equals(d1.getUse().getCode());
+				boolean d2IsDisplay = d2.hasUse() && "display".equals(d2.getUse().getCode());
+				if (d1IsDisplay && !d2IsDisplay) return -1;
+				if (!d1IsDisplay && d2IsDisplay) return 1;
+				return 0; // Preserve order for non-display designations
+			});
+			
 			component.setDesignation(newDesignations);
 		} else {
 			component.setDesignation(emptyList());

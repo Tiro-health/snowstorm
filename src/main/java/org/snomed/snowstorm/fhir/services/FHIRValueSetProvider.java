@@ -289,13 +289,18 @@ public class FHIRValueSetProvider implements IResourceProvider, FHIRConstants {
 			@OperationParam(name="date") DateTimeType date,
 			@OperationParam(name="abstract") BooleanType abstractBool,
 			@OperationParam(name="displayLanguage") String displayLanguage,
-			@OperationParam(name="system-version") String systemVersionDeprecated,
 			@OperationParam(name="inferSystem") BooleanType inferSystem,
 			@OperationParam(name="lenient-display-validation") BooleanType lenientDisplayValidation,
 			@OperationParam(name="valueset-membership-only") BooleanType valueSetMembershipOnly,
 			@OperationParam(name="activeOnly") BooleanType activeOnly) {
 
-		return valueSetService.validateCode(id.getIdPart(), url, context, valueSet, valueSetVersion, code, system, systemVersion == null ? systemVersionDeprecated : systemVersion, display, coding, codeableConcept, date, abstractBool,
+		// Validate that deprecated parameter name is not used
+		if (request.getParameter("system-version") != null) {
+			throw exception("Parameter name 'system-version' is not applicable to this operation. Please use 'systemVersion' instead.", 
+				IssueType.INVALID, 400);
+		}
+
+		return valueSetService.validateCode(id.getIdPart(), url, context, valueSet, valueSetVersion, code, system, systemVersion, display, coding, codeableConcept, date, abstractBool,
 				FHIRHelper.getDisplayLanguage(displayLanguage, request.getHeader(ACCEPT_LANGUAGE_HEADER)),inferSystem, activeOnly, null, lenientDisplayValidation, valueSetMembershipOnly);
 	}
 
@@ -317,12 +322,17 @@ public class FHIRValueSetProvider implements IResourceProvider, FHIRConstants {
 			@OperationParam(name="date") DateTimeType date,
 			@OperationParam(name="abstract") BooleanType abstractBool,
 			@OperationParam(name="displayLanguage") String displayLanguage,
-			@OperationParam(name="system-version") String systemVersionDeprecated,
 			@OperationParam(name="inferSystem") BooleanType inferSystem,
 			@OperationParam(name="activeOnly") BooleanType activeOnly,
 			@OperationParam(name="lenient-display-validation") BooleanType lenientDisplayValidation,
 			@OperationParam(name="valueset-membership-only") BooleanType valueSetMembershipOnly,
 			@OperationParam(name="default-valueset-version") CanonicalType versionValueSet) {
+
+		// Validate that deprecated parameter name is not used
+		if (request.getParameter("system-version") != null) {
+			throw exception("Parameter name 'system-version' is not applicable to this operation. Please use 'systemVersion' instead.", 
+				IssueType.INVALID, 400);
+		}
 
 		logger.info(FHIRValueSetProviderHelper.getFullURL(request));
 		if (request.getMethod().equals(RequestMethod.POST.name())) {
@@ -330,7 +340,7 @@ public class FHIRValueSetProvider implements IResourceProvider, FHIRConstants {
 			List<Parameters.ParametersParameterComponent> parsed = fhirContext.newJsonParser().parseResource(Parameters.class, rawBody).getParameter();
 			FHIRHelper.handleTxResources(loadPackageService, parsed);
 		}
-		return valueSetService.validateCode(null, url, context, valueSet, valueSetVersion, code, system, systemVersion == null ? systemVersionDeprecated : systemVersion, display, coding, codeableConcept, date, abstractBool,
+		return valueSetService.validateCode(null, url, context, valueSet, valueSetVersion, code, system, systemVersion, display, coding, codeableConcept, date, abstractBool,
 				FHIRHelper.getDisplayLanguage(displayLanguage, request.getHeader(ACCEPT_LANGUAGE_HEADER)), inferSystem, activeOnly, versionValueSet, lenientDisplayValidation, valueSetMembershipOnly);
 	}
 

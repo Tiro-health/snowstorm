@@ -16,6 +16,7 @@ import org.snomed.snowstorm.core.data.services.traceability.TraceabilityLogServi
 import org.snomed.snowstorm.core.rf2.RF2Type;
 import org.snomed.snowstorm.core.rf2.rf2import.ImportService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.TestPropertySource;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -26,6 +27,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.snomed.snowstorm.core.data.domain.Concepts.*;
 import static org.snomed.snowstorm.core.data.services.traceability.Activity.ActivityType.*;
 
+@TestPropertySource(properties = {"authoring.traceability.enabled=true"})
 class TraceabilityLogServiceTest extends AbstractTest {
 
 	@Autowired
@@ -55,19 +57,11 @@ class TraceabilityLogServiceTest extends AbstractTest {
 	@Autowired
 	private RelationshipService relationshipService;
 
-	private boolean traceabilityOriginallyEnabled;
-
 	@BeforeEach
 	void setup() {
-		traceabilityOriginallyEnabled = traceabilityLogService.isEnabled();
-		// Temporarily enable traceability if not already enabled in the test context
-		traceabilityLogService.setEnabled(true);
-	}
-
-	@AfterEach
-	void tearDown() {
-		// Restore test context traceability switch
-		traceabilityLogService.setEnabled(traceabilityOriginallyEnabled);
+		// Traceability should be enabled by application-jms-test.properties
+		assertTrue(traceabilityLogService.isEnabled(),
+				"Traceability should be enabled in test context via application-jms-test.properties");
 	}
 
 	@Test

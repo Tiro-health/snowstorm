@@ -102,7 +102,7 @@ public class ConceptUpdateHelper extends ComponentService {
 	@Autowired
 	private IdentifierService identifierService;
 
-	@Autowired
+	@Autowired(required = false)
 	private ValidatorService validatorService;
 
 	@Autowired
@@ -358,7 +358,9 @@ public class ConceptUpdateHelper extends ComponentService {
 	}
 
 	private void validateConcepts(Collection<Concept> concepts) {
-		validatorService.validate(concepts);
+		if (validatorService != null) {
+			validatorService.validate(concepts);
+		}
 		for (Concept concept : concepts) {
 			for (Axiom gciAxiom : Optional.ofNullable(concept.getGciAxioms()).orElse(Collections.emptySet())) {
 				if (gciAxiom.isActive()) {

@@ -66,7 +66,9 @@ class FHIRValueSetProviderExpandEclTest extends AbstractFHIRTest {
 		ValueSet v = getValueSet(url);
 		assertEquals(1, v.getExpansion().getContains().size());
 		assertFalse(v.getExpansion().getContains().get(0).getDesignation().isEmpty());
-		assertTrue(v.getExpansion().getContains().get(0).getDesignation().get(0).getValue().contains("potato"));
+		String designationValue = v.getExpansion().getContains().get(0).getDesignation().get(0).getValue();
+		assertNotNull(designationValue, "Designation value should not be null");
+		assertTrue(designationValue.contains("potato"));
 	}
 
 	@Test

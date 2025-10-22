@@ -5,6 +5,8 @@ import ca.uhn.fhir.jpa.entity.TermConceptDesignation;
 import ca.uhn.fhir.jpa.entity.TermConceptParentChildLink;
 import ca.uhn.fhir.jpa.entity.TermConceptProperty;
 import org.hl7.fhir.r4.model.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.snomed.snowstorm.core.data.domain.ConceptMini;
 import org.snomed.snowstorm.core.data.domain.Description;
 import org.snomed.snowstorm.core.pojo.LanguageDialect;
@@ -24,6 +26,7 @@ import static org.snomed.snowstorm.fhir.config.FHIRConstants.SNOMED_URI;
 @Document(indexName = "#{@indexNameProvider.indexName('fhir-concept')}", createIndex = false)
 public class FHIRConcept implements FHIRGraphNode {
 
+	private static final Logger staticLogger = LoggerFactory.getLogger(FHIRConcept.class);
 	public static final String EXTENSION_MARKER = "://";
 
 	public interface Fields {
@@ -174,9 +177,10 @@ public class FHIRConcept implements FHIRGraphNode {
 		code = snomedConceptMini.getConceptId();
 		codeLower = code.toLowerCase();
 		TermLangPojo displayTerm = snomedConceptMini.getPt();
-		if (displayTerm == null) {
+		// Check if PT has valid term, not just if PT object exists
+		if (displayTerm == null || displayTerm.getTerm() == null) {
 			displayTerm = snomedConceptMini.getFsn();
-			if (displayTerm == null) {
+			if (displayTerm == null || displayTerm.getTerm() == null) {
 				displayTerm = new TermLangPojo(code, "en");
 			}
 		}
@@ -193,9 +197,8 @@ public class FHIRConcept implements FHIRGraphNode {
 			activeDescriptions.sort(Comparator.comparing(Description::getType).thenComparing(description -> !description.hasAcceptability(requestedLanguageDialects)));
 			for (Description description : activeDescriptions) {
 				FHIRDesignation designation = new FHIRDesignation(description.getLanguageCode(), description.getTerm());
-				if (description.hasAcceptability(requestedLanguageDialects)) {
-					designation.setUse(SNOMED_URI, description.getTypeId());
-				}
+				// Always set the use field based on the description type
+				designation.setUse(SNOMED_URI, description.getTypeId());
 				designations.add(designation);
 			}
 		}

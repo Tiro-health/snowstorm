@@ -28,7 +28,8 @@ class FHIRCodeSystemProviderInstancesTest extends AbstractFHIRTest {
 		});
 		for (BundleEntryComponent entry : bundle.getEntry()) {
 			CodeSystem cs = (CodeSystem) entry.getResource();
-			assertTrue(cs.getTitle().contains("SNOMED CT") || cs.getTitle().contains("ICD-10"), () -> "Found title " + cs.getTitle());
+			assertTrue(cs.getTitle().contains("SNOMED CT") || cs.getTitle().contains("ICD-10"), 
+				() -> "Found title " + cs.getTitle());
 		}
 	}
 	
@@ -43,7 +44,8 @@ class FHIRCodeSystemProviderInstancesTest extends AbstractFHIRTest {
 		for (BundleEntryComponent entry : bundle.getEntry()) {
 			CodeSystem cs = (CodeSystem)(entry.getResource());
 			String title = cs.getTitle();
-			assertTrue(cs.getTitle().contains("SNOMED CT") || cs.getTitle().contains("ICD-10"), () -> "Found title " + cs.getTitle());
+			assertTrue(cs.getTitle().contains("SNOMED CT") || cs.getTitle().contains("ICD-10"), 
+				() -> "Found title " + cs.getTitle());
 		}
 	}
 	
