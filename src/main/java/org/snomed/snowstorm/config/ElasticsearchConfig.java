@@ -19,6 +19,7 @@ import org.snomed.snowstorm.core.data.domain.Annotation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.elasticsearch.client.ClientConfiguration;
 import org.springframework.data.elasticsearch.client.elc.ElasticsearchClients;
 import org.springframework.data.elasticsearch.client.elc.ElasticsearchConfiguration;
@@ -152,6 +153,7 @@ public class ElasticsearchConfig extends ElasticsearchConfiguration {
 	}
 
 	@Bean
+	@Lazy
 	public IndexNameProvider indexNameProvider() {
 		return new IndexNameProvider(indexNamePrefix);
 	}
