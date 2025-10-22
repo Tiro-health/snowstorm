@@ -90,7 +90,12 @@ public class FHIRConceptMapProvider implements IResourceProvider, FHIRConstants 
 
 		String url = urlType != null ? urlType.getValueAsString() : null;
 		notSupported("conceptMapVersion", conceptMapVersion);
-		notSupported("reverse", reverse);
+
+		// Accept reverse parameter but only support reverse=false
+		if (reverse != null && reverse.booleanValue()) {
+			throw exception("Reverse translation is not supported. Only forward translation (reverse=false) is available.", IssueType.NOTSUPPORTED, 400);
+		}
+
 		List<LanguageDialect> languageDialects = ControllerHelper.parseAcceptLanguageHeader(request.getHeader(ACCEPT_LANGUAGE_HEADER));
 
 		// Get coding to translate

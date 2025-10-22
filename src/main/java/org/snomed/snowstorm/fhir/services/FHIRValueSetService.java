@@ -3,7 +3,7 @@ package org.snomed.snowstorm.fhir.services;
 import ca.uhn.fhir.jpa.entity.TermConcept;
 import ca.uhn.fhir.util.UrlUtil;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
-import co.elastic.clients.elasticsearch._types.query_dsl.PrefixQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
 import com.google.common.base.Strings;
 import io.kaicode.elasticvc.api.BranchCriteria;
 import io.kaicode.elasticvc.api.VersionControlHelper;
@@ -21,6 +21,7 @@ import org.snomed.snowstorm.core.data.domain.Concepts;
 import org.snomed.snowstorm.core.data.domain.QueryConcept;
 import org.snomed.snowstorm.core.data.domain.ReferenceSetMember;
 import org.snomed.snowstorm.core.data.services.ConceptService;
+import org.snomed.snowstorm.core.data.services.DescriptionService;
 import org.snomed.snowstorm.core.data.services.QueryService;
 import org.snomed.snowstorm.core.data.services.ReferenceSetMemberService;
 import org.snomed.snowstorm.core.data.services.identifier.IdentifierHelper;
@@ -396,7 +397,7 @@ public class FHIRValueSetService {
 			// FHIR Concept Expansion (non-SNOMED)
 			String sortField = filter != null ? "displayLen" : "code";
 			pageRequest = PageRequest.of(pageRequest.getPageNumber(), pageRequest.getPageSize(), Sort.Direction.ASC, sortField);
-			BoolQuery.Builder fhirConceptQuery = getFhirConceptQuery(codeSelectionCriteria, filter);
+			BoolQuery fhirConceptQuery = getFhirConceptQuery(codeSelectionCriteria, filter).build();
 
 			int offsetRequested = (int) pageRequest.getOffset();
 			int limitRequested = (int) (pageRequest.getOffset() + pageRequest.getPageSize());
@@ -431,14 +432,16 @@ public class FHIRValueSetService {
 					conceptsToLoad = new ArrayList<>();
 				}
 				if (!conceptsToLoad.isEmpty()) {
-					fhirConceptQuery.must(termsQuery(FHIRConcept.Fields.CODE, conceptsToLoad));
-					conceptsPage = conceptService.findConcepts(fhirConceptQuery, LARGE_PAGE);
+					BoolQuery.Builder conceptsToLoadQuery = bool()
+							.must(fhirConceptQuery._toQuery())
+							.must(termsQuery(FHIRConcept.Fields.CODE, conceptsToLoad));
+					conceptsPage = conceptService.findConcepts(conceptsToLoadQuery, LARGE_PAGE);
 					conceptsPage = new PageImpl<>(conceptsPage.getContent(), pageRequest, totalResults);
 				} else {
 					conceptsPage = new PageImpl<>(new ArrayList<>(), pageRequest, totalResults);
 				}
 			} else {
-				conceptsPage = conceptService.findConcepts(fhirConceptQuery, pageRequest);
+				conceptsPage = conceptService.findConcepts(bool().must(fhirConceptQuery._toQuery()), pageRequest);
 			}
 		}
 
@@ -902,7 +905,10 @@ public class FHIRValueSetService {
 		BoolQuery.Builder masterQuery = bool();
 		masterQuery.must(contentQuery.build()._toQuery());
 		if (termFilter != null) {
-			masterQuery.must(PrefixQuery.of(pq -> pq.field(FHIRConcept.Fields.DISPLAY).value(termFilter.toLowerCase()))._toQuery());
+			List<String> elasticAnalyzedWords = DescriptionService.analyze(termFilter, new StandardAnalyzer());
+			String searchTerm = DescriptionService.constructSearchTerm(elasticAnalyzedWords);
+			String query = DescriptionService.constructSimpleQueryString(searchTerm);
+			masterQuery.filter(Queries.queryStringQuery(FHIRConcept.Fields.DISPLAY, query, Operator.And, 2.0f)._toQuery());
 		}
 		return masterQuery;
 	}
