@@ -3,7 +3,6 @@ package org.snomed.snowstorm.config;
 import com.google.common.base.Strings;
 import io.github.acm19.aws.interceptor.http.AwsRequestSigningApacheInterceptor;
 import io.kaicode.elasticvc.api.ComponentService;
-import io.kaicode.elasticvc.repositories.config.IndexNameProvider;
 import jakarta.annotation.PostConstruct;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
@@ -19,7 +18,6 @@ import org.snomed.snowstorm.core.data.domain.Annotation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.data.elasticsearch.client.ClientConfiguration;
 import org.springframework.data.elasticsearch.client.elc.ElasticsearchClients;
 import org.springframework.data.elasticsearch.client.elc.ElasticsearchConfiguration;
@@ -150,12 +148,6 @@ public class ElasticsearchConfig extends ElasticsearchConfiguration {
 	@Bean
 	public ElasticsearchProperties elasticsearchProperties() {
 		return new ElasticsearchProperties();
-	}
-
-	@Bean
-	@Lazy
-	public IndexNameProvider indexNameProvider() {
-		return new IndexNameProvider(indexNamePrefix);
 	}
 
 	protected void initialiseIndices(boolean deleteExisting) {
